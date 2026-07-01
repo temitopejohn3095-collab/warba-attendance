@@ -6,607 +6,324 @@
 <title>Warba Attendance System</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+  body { background: #f3f4f6; min-height: 100vh; }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  :root {
-    --warba-navy: #003366;
-    --warba-gold: #C8A84B;
-    --warba-light: #f5f7fa;
-    --warba-white: #ffffff;
-    --warba-gray: #6b7280;
-    --warba-border: #e5e7eb;
-    --checkin-green: #059669;
-    --checkout-orange: #d97706;
-    --error-red: #dc2626;
-    --success-green: #10b981;
-  }
-
-  body {
-    font-family: 'Inter', sans-serif;
-    background: var(--warba-light);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* HEADER */
-  .header {
-    background: var(--warba-navy);
-    padding: 20px 24px;
+  .topbar {
+    background: #0b2d52;
+    padding: 18px 28px;
     display: flex;
     align-items: center;
     gap: 16px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
   }
-
-  .header-logo {
+  .logo-box {
+    background: #cfa445;
+    color: #0b2d52;
+    font-weight: 800;
+    font-size: 22px;
     width: 48px;
     height: 48px;
-    background: var(--warba-gold);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    color: var(--warba-navy);
-    font-size: 18px;
-    letter-spacing: -0.5px;
     flex-shrink: 0;
   }
+  .topbar-title { color: #fff; font-size: 19px; font-weight: 700; }
+  .topbar-sub { color: #cfa445; font-size: 12px; font-weight: 600; letter-spacing: 0.6px; }
 
-  .header-text h1 {
-    color: var(--warba-white);
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-  }
-
-  .header-text p {
-    color: var(--warba-gold);
-    font-size: 12px;
-    font-weight: 400;
-    margin-top: 2px;
-    letter-spacing: 0.5px;
-  }
-
-  /* MODE BADGE */
-  .mode-badge {
-    margin: 24px auto 0;
-    width: fit-content;
-    padding: 6px 18px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-
-  .mode-badge.checkin {
-    background: rgba(5, 150, 105, 0.12);
-    color: var(--checkin-green);
-    border: 1px solid rgba(5, 150, 105, 0.25);
-  }
-
-  .mode-badge.checkout {
-    background: rgba(217, 119, 6, 0.12);
-    color: var(--checkout-orange);
-    border: 1px solid rgba(217, 119, 6, 0.25);
-  }
-
-  /* MAIN CARD */
-  .container {
-    flex: 1;
+  .content {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 24px 16px 40px;
-    max-width: 480px;
-    width: 100%;
-    margin: 0 auto;
+    padding: 36px 20px 20px;
   }
+
+  .toggle {
+    display: flex;
+    background: #e5e7eb;
+    border-radius: 24px;
+    padding: 4px;
+    margin-bottom: 26px;
+  }
+  .toggle button {
+    border: none;
+    background: transparent;
+    padding: 9px 22px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+    color: #6b7280;
+    transition: all 0.15s ease;
+  }
+  .toggle button.active.checkin { background: #dcfce7; color: #15803d; }
+  .toggle button.active.checkout { background: #fee2e2; color: #b91c1c; }
 
   .card {
-    background: var(--warba-white);
+    background: #fff;
     border-radius: 16px;
-    padding: 32px 28px;
+    max-width: 420px;
     width: 100%;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
-    border: 1px solid var(--warba-border);
-    margin-top: 20px;
+    padding: 36px 28px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
   }
 
-  .card-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--warba-navy);
-    margin-bottom: 6px;
-  }
+  h1 { font-size: 20px; color: #0b2d52; margin-bottom: 4px; }
+  .subtitle { color: #6b7280; font-size: 14px; margin-bottom: 22px; }
 
-  .card-subtitle {
-    font-size: 14px;
-    color: var(--warba-gray);
-    margin-bottom: 28px;
-    line-height: 1.5;
-  }
-
-  /* FORM */
-  .form-group {
-    margin-bottom: 20px;
-  }
-
-  label {
-    display: block;
+  .time-row {
+    background: #f3f4f6;
+    border-radius: 10px;
+    padding: 12px 14px;
     font-size: 13px;
-    font-weight: 600;
-    color: var(--warba-navy);
-    margin-bottom: 8px;
-    letter-spacing: 0.3px;
+    color: #6b7280;
+    margin-bottom: 22px;
   }
+  .time-row strong { color: #0b2d52; }
 
-  input[type="tel"],
-  input[type="text"],
-  textarea {
+  label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin: 16px 0 6px; }
+  label:first-of-type { margin-top: 0; }
+  input[type="text"], textarea {
     width: 100%;
-    padding: 14px 16px;
-    border: 1.5px solid var(--warba-border);
+    padding: 12px 14px;
+    border: 1px solid #d1d5db;
     border-radius: 10px;
     font-size: 15px;
-    font-family: 'Inter', sans-serif;
-    color: #1f2937;
-    background: #fafafa;
-    transition: border-color 0.2s, box-shadow 0.2s;
     outline: none;
   }
+  input:focus, textarea:focus { border-color: #0b2d52; }
+  textarea { min-height: 90px; resize: vertical; }
 
-  input[type="tel"]:focus,
-  input[type="text"]:focus,
-  textarea:focus {
-    border-color: var(--warba-navy);
-    box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.08);
-    background: var(--warba-white);
-  }
-
-  textarea {
-    resize: vertical;
-    min-height: 100px;
-  }
-
-  .file-upload-area {
-    border: 2px dashed var(--warba-border);
-    border-radius: 10px;
-    padding: 24px 16px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
-    background: #fafafa;
-  }
-
-  .file-upload-area:hover {
-    border-color: var(--warba-gold);
-    background: rgba(200, 168, 75, 0.04);
-  }
-
-  .file-upload-area input[type="file"] {
-    display: none;
-  }
-
-  .file-upload-icon {
-    font-size: 28px;
-    margin-bottom: 8px;
-  }
-
-  .file-upload-text {
-    font-size: 13px;
-    color: var(--warba-gray);
-  }
-
-  .file-upload-text span {
-    color: var(--warba-navy);
-    font-weight: 600;
-  }
-
-  .file-name {
-    margin-top: 8px;
-    font-size: 12px;
-    color: var(--checkin-green);
-    font-weight: 500;
-    display: none;
-  }
-
-  /* SUBMIT BUTTON */
-  .btn-submit {
+  button.submit {
     width: 100%;
-    padding: 16px;
+    margin-top: 22px;
+    padding: 14px;
     border: none;
     border-radius: 10px;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
-    font-family: 'Inter', sans-serif;
+    color: #fff;
     cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
-    letter-spacing: 0.3px;
-    margin-top: 8px;
   }
+  button.submit.checkin { background: #15803d; }
+  button.submit.checkout { background: #b91c1c; }
+  button.submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
-  .btn-submit:active { transform: translateY(0); }
-  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
-
-  .btn-checkin {
-    background: var(--checkin-green);
-    color: white;
-  }
-
-  .btn-checkout {
-    background: var(--checkout-orange);
-    color: white;
-  }
-
-  /* ALERT MESSAGES */
-  .alert {
-    padding: 14px 16px;
+  .msg {
+    margin-top: 18px;
+    padding: 14px;
     border-radius: 10px;
     font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 20px;
-    display: none;
-    line-height: 1.5;
-  }
-
-  .alert-error {
-    background: rgba(220, 38, 38, 0.08);
-    color: var(--error-red);
-    border: 1px solid rgba(220, 38, 38, 0.2);
-  }
-
-  .alert-success {
-    background: rgba(16, 185, 129, 0.08);
-    color: var(--success-green);
-    border: 1px solid rgba(16, 185, 129, 0.2);
-  }
-
-  /* SUCCESS SCREEN */
-  .success-screen {
     text-align: center;
-    padding: 20px 0;
     display: none;
   }
+  .msg.success { background: #dcfce7; color: #15803d; display: block; }
+  .msg.error { background: #fee2e2; color: #b91c1c; display: block; }
 
-  .success-icon {
-    width: 72px;
-    height: 72px;
-    background: rgba(16, 185, 129, 0.1);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px;
-    font-size: 32px;
+  /* success confirmation state */
+  .result { display: none; text-align: center; }
+  .result.show { display: block; }
+  .result .icon {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: #dcfce7; color: #15803d;
+    font-size: 30px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
   }
+  .result.error .icon { background: #fee2e2; color: #b91c1c; }
+  .result .name { font-size: 20px; font-weight: 700; color: #15803d; margin-bottom: 4px; }
+  .result.error .name { color: #b91c1c; }
+  .result .timestamp { font-size: 13px; color: #6b7280; margin-bottom: 18px; }
+  .result .headline { font-size: 18px; font-weight: 700; color: #0b2d52; margin-bottom: 8px; }
+  .result .detail { font-size: 14px; color: #6b7280; margin-bottom: 24px; }
+  .result .again { background: #0b2d52; color: #fff; border: none; padding: 12px 22px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
 
-  .success-screen h2 {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--warba-navy);
-    margin-bottom: 8px;
-  }
-
-  .success-screen p {
-    font-size: 14px;
-    color: var(--warba-gray);
-    line-height: 1.6;
-    margin-bottom: 24px;
-  }
-
-  .success-name {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--checkin-green);
-    margin-bottom: 4px;
-  }
-
-  .success-time {
-    font-size: 13px;
-    color: var(--warba-gray);
-    margin-bottom: 20px;
-  }
-
-  /* LOADING SPINNER */
-  .spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    display: inline-block;
-    margin-right: 8px;
-    vertical-align: middle;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* DIVIDER */
-  .divider {
-    height: 1px;
-    background: var(--warba-border);
-    margin: 24px 0;
-  }
-
-  /* FOOTER */
-  .footer {
-    text-align: center;
-    padding: 20px 16px;
-    font-size: 11px;
-    color: #9ca3af;
-    line-height: 1.8;
-  }
-
-  .footer a {
-    color: var(--warba-navy);
-    text-decoration: none;
-    font-weight: 500;
-  }
-
-  .footer .developer {
-    color: var(--warba-gold);
-    font-weight: 600;
-    font-size: 11px;
-  }
-
-  /* TIME DISPLAY */
-  .time-display {
-    background: var(--warba-light);
-    border: 1px solid var(--warba-border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 13px;
-    color: var(--warba-gray);
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .time-display .time-value {
-    font-weight: 600;
-    color: var(--warba-navy);
-    font-size: 15px;
-  }
-
-  @media (max-width: 400px) {
-    .card { padding: 24px 20px; }
-    .card-title { font-size: 20px; }
-  }
+  .footer { text-align: center; margin-top: 24px; font-size: 11px; color: #9ca3af; }
+  .footer .site { color: #0b2d52; font-weight: 600; margin-bottom: 4px; }
+  .footer .credit { color: #cfa445; font-weight: 600; margin-top: 4px; }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<div class="header">
-  <div class="header-logo">W</div>
-  <div class="header-text">
-    <h1>Warba Insurance & Reinsurance</h1>
-    <p>ATTENDANCE MANAGEMENT SYSTEM</p>
+  <div class="topbar">
+    <div class="logo-box">W</div>
+    <div>
+      <div class="topbar-title">Warba Insurance &amp; Reinsurance</div>
+      <div class="topbar-sub">ATTENDANCE MANAGEMENT SYSTEM</div>
+    </div>
   </div>
-</div>
 
-<!-- MAIN CONTENT -->
-<div class="container">
+  <div class="content">
+    <div class="toggle">
+      <button id="tabCheckin" class="active checkin" onclick="setMode('checkin')">CHECK-IN</button>
+      <button id="tabCheckout" class="checkout" onclick="setMode('checkout')">CHECK-OUT</button>
+    </div>
 
-  <div id="modeBadge" class="mode-badge checkin">Check-In</div>
+    <div class="card">
 
-  <div class="card">
+      <div id="formView">
+        <h1 id="formTitle">Student Check-In</h1>
+        <p class="subtitle" id="formSubtitle">Enter your registered mobile number to record your attendance.</p>
 
-    <!-- ALERT MESSAGES -->
-    <div id="alertError" class="alert alert-error"></div>
-    <div id="alertSuccess" class="alert alert-success"></div>
+        <div class="time-row">
+          Current Time: <strong id="clock"></strong>
+        </div>
 
-    <!-- FORM SECTION -->
-    <div id="formSection">
-      <div id="cardTitle" class="card-title">Student Check-In</div>
-      <div id="cardSubtitle" class="card-subtitle">Enter your registered mobile number to record your attendance.</div>
+        <label for="mobile">Mobile Number</label>
+        <input type="text" id="mobile" placeholder="+2347045995935">
 
-      <!-- LIVE TIME -->
-      <div class="time-display">
-        <span>Current Time:</span>
-        <span id="liveTime" class="time-value"></span>
+        <div id="checkoutFields" style="display:none;">
+          <label for="feedback">Feedback</label>
+          <textarea id="feedback" placeholder="How was today's session?"></textarea>
+          <label for="videoLink">Training Video Link (optional)</label>
+          <input type="text" id="videoLink" placeholder="Paste your Google Drive / WhatsApp video link">
+        </div>
+
+        <button id="submitBtn" class="submit checkin" onclick="submitForm()">Check In</button>
+        <div id="msg" class="msg"></div>
       </div>
 
-      <form id="attendanceForm">
+      <div id="resultView" class="result">
+        <div class="icon" id="resultIcon">&#10003;</div>
+        <div class="name" id="resultName"></div>
+        <div class="timestamp" id="resultTimestamp"></div>
+        <div class="headline" id="resultHeadline"></div>
+        <div class="detail" id="resultDetail"></div>
+        <button class="again" onclick="resetView()">Done</button>
+      </div>
 
-        <!-- MOBILE NUMBER -->
-        <div class="form-group">
-          <label for="mobileNumber">Mobile Number</label>
-          <input type="tel" id="mobileNumber" placeholder="e.g. +96550000000" required autocomplete="tel">
-        </div>
-
-        <!-- FEEDBACK (checkout only) -->
-        <div id="feedbackGroup" class="form-group" style="display:none;">
-          <div class="divider"></div>
-          <label for="feedbackText">Session Feedback</label>
-          <textarea id="feedbackText" placeholder="Share your thoughts about today's session..."></textarea>
-        </div>
-
-        <!-- VIDEO UPLOAD (checkout only) -->
-        <div id="videoGroup" class="form-group" style="display:none;">
-          <label>Training Video (Optional)</label>
-          <div class="file-upload-area" onclick="document.getElementById('videoFile').click()">
-            <input type="file" id="videoFile" accept="video/*" onchange="handleFileSelect(this)">
-            <div class="file-upload-icon">🎥</div>
-            <div class="file-upload-text">Tap to upload your training video<br><span>MP4, MOV, AVI supported</span></div>
-            <div id="fileName" class="file-name"></div>
-          </div>
-        </div>
-
-        <button type="submit" id="submitBtn" class="btn-submit btn-checkin">Check In</button>
-
-      </form>
     </div>
 
-    <!-- SUCCESS SECTION -->
-    <div id="successSection" class="success-screen">
-      <div class="success-icon">✓</div>
-      <div id="successName" class="success-name"></div>
-      <div id="successTime" class="success-time"></div>
-      <h2 id="successTitle">Checked In Successfully</h2>
-      <p id="successMessage">Your attendance has been recorded. Have a great session!</p>
+    <div class="footer">
+      <div class="site">warba.insure</div>
+      <div>Warba Insurance and Reinsurance Company — Kuwait</div>
+      <div class="credit">Developed by: Syed Usama Najeeb — Digital Transformation Specialist</div>
     </div>
-
   </div>
-</div>
-
-<!-- FOOTER -->
-<div class="footer">
-  <a href="https://www.warba.insure" target="_blank">warba.insure</a><br>
-  Warba Insurance and Reinsurance Company — Kuwait<br>
-  <span class="developer">Developed by: Syed Usama Najeeb — Digital Transformation Specialist</span>
-</div>
 
 <script>
   // ============================================================
-  // CONFIGURATION — Replace with your deployed Apps Script URL
+  // Live Apps Script deployment URL
   // ============================================================
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyx6TLajjhE4ugNRpL-TaXF9ACbXxKzKz5EBWtY847ekP68v5VCGXSSr3ij2C_2sfDNog/exec';
 
-  // ============================================================
-  // DETECT MODE FROM URL PARAMETER
-  // ============================================================
-  const urlParams = new URLSearchParams(window.location.search);
-  const mode = urlParams.get('mode') || 'checkin'; // 'checkin' or 'checkout'
+  let mode = 'checkin';
 
-  // ============================================================
-  // SETUP UI BASED ON MODE
-  // ============================================================
-  function setupMode() {
-    const badge = document.getElementById('modeBadge');
-    const title = document.getElementById('cardTitle');
-    const subtitle = document.getElementById('cardSubtitle');
-    const btn = document.getElementById('submitBtn');
-    const feedbackGroup = document.getElementById('feedbackGroup');
-    const videoGroup = document.getElementById('videoGroup');
+  // Allow ?mode=checkout in the URL to preset the tab, but the toggle always works too
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('mode') === 'checkout') mode = 'checkout';
 
-    if (mode === 'checkout') {
-      badge.textContent = 'Check-Out';
-      badge.className = 'mode-badge checkout';
-      title.textContent = 'Student Check-Out';
-      subtitle.textContent = 'Enter your mobile number, leave your feedback, and upload any training videos.';
-      btn.textContent = 'Check Out';
-      btn.className = 'btn-submit btn-checkout';
-      feedbackGroup.style.display = 'block';
-      videoGroup.style.display = 'block';
-    }
-  }
-
-  // ============================================================
-  // LIVE CLOCK
-  // ============================================================
   function updateClock() {
     const now = new Date();
-    const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-    document.getElementById('liveTime').textContent = now.toLocaleString('en-GB', options);
+    const opts = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    document.getElementById('clock').textContent = now.toLocaleString('en-GB', opts).replace(',', ',');
   }
   updateClock();
   setInterval(updateClock, 1000);
 
-  // ============================================================
-  // FILE SELECT HANDLER
-  // ============================================================
-  function handleFileSelect(input) {
-    const fileNameEl = document.getElementById('fileName');
-    if (input.files && input.files[0]) {
-      fileNameEl.textContent = '✓ ' + input.files[0].name;
-      fileNameEl.style.display = 'block';
-    }
-  }
+  function setMode(newMode) {
+    mode = newMode;
+    document.getElementById('tabCheckin').classList.toggle('active', mode === 'checkin');
+    document.getElementById('tabCheckout').classList.toggle('active', mode === 'checkout');
 
-  // ============================================================
-  // FORM SUBMISSION
-  // ============================================================
-  document.getElementById('attendanceForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
+    const isCheckout = mode === 'checkout';
+    document.getElementById('formTitle').textContent = isCheckout ? 'Student Check-Out' : 'Student Check-In';
+    document.getElementById('formSubtitle').textContent = isCheckout
+      ? 'Enter your mobile number, leave feedback, and check out.'
+      : 'Enter your registered mobile number to record your attendance.';
+    document.getElementById('checkoutFields').style.display = isCheckout ? 'block' : 'none';
 
     const btn = document.getElementById('submitBtn');
-    const mobile = document.getElementById('mobileNumber').value.trim();
-    const feedback = document.getElementById('feedbackText').value.trim();
-    const errorEl = document.getElementById('alertError');
-    const successEl = document.getElementById('alertSuccess');
+    btn.textContent = isCheckout ? 'Check Out' : 'Check In';
+    btn.className = 'submit ' + (isCheckout ? 'checkout' : 'checkin');
 
-    // Clear previous alerts
-    errorEl.style.display = 'none';
-    successEl.style.display = 'none';
+    resetView();
+  }
+
+  function resetView() {
+    document.getElementById('formView').style.display = 'block';
+    document.getElementById('resultView').classList.remove('show');
+    document.getElementById('msg').style.display = 'none';
+    document.getElementById('mobile').value = '';
+    if (document.getElementById('feedback')) document.getElementById('feedback').value = '';
+    if (document.getElementById('videoLink')) document.getElementById('videoLink').value = '';
+  }
+
+  function jsonp(url, callbackName) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      window[callbackName] = (data) => {
+        resolve(data);
+        delete window[callbackName];
+        script.remove();
+      };
+      script.onerror = () => reject(new Error('Could not reach the server. Check your internet connection.'));
+      script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
+      document.body.appendChild(script);
+    });
+  }
+
+  function submitForm() {
+    const mobile = document.getElementById('mobile').value.trim();
+    const msgBox = document.getElementById('msg');
+    const btn = document.getElementById('submitBtn');
 
     if (!mobile) {
-      showError('Please enter your mobile number.');
+      msgBox.className = 'msg error';
+      msgBox.textContent = 'Please enter your mobile number.';
+      msgBox.style.display = 'block';
       return;
     }
 
-    // Loading state
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>' + (mode === 'checkout' ? 'Processing...' : 'Checking in...');
+    btn.textContent = 'Please wait...';
+    msgBox.style.display = 'none';
 
-    try {
-      const payload = {
-        mode: mode,
-        mobile: mobile,
-        feedback: feedback,
-        timestamp: new Date().toISOString()
-      };
+    let url = APPS_SCRIPT_URL + '?mode=' + mode + '&mobile=' + encodeURIComponent(mobile);
 
-      const params = new URLSearchParams(payload);
-      const response = await fetch(APPS_SCRIPT_URL + '?' + params.toString(), {
-        method: 'GET'
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        showSuccess(result.name, result.message);
-      } else {
-        showError(result.message || 'Something went wrong. Please try again.');
-        btn.disabled = false;
-        btn.innerHTML = mode === 'checkout' ? 'Check Out' : 'Check In';
-      }
-
-    } catch (err) {
-      showError('Unable to connect. Please check your internet and try again.');
-      btn.disabled = false;
-      btn.innerHTML = mode === 'checkout' ? 'Check Out' : 'Check In';
+    if (mode === 'checkout') {
+      const feedback = document.getElementById('feedback').value.trim();
+      const videoLink = document.getElementById('videoLink').value.trim();
+      url += '&feedback=' + encodeURIComponent(feedback) + '&videoLink=' + encodeURIComponent(videoLink);
     }
-  });
 
-  // ============================================================
-  // SHOW ERROR
-  // ============================================================
-  function showError(msg) {
-    const el = document.getElementById('alertError');
-    el.textContent = msg;
-    el.style.display = 'block';
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const callbackName = 'cb_' + Date.now();
+
+    jsonp(url, callbackName)
+      .then((data) => {
+        btn.disabled = false;
+        btn.textContent = mode === 'checkin' ? 'Check In' : 'Check Out';
+        showResult(data);
+      })
+      .catch((err) => {
+        btn.disabled = false;
+        btn.textContent = mode === 'checkin' ? 'Check In' : 'Check Out';
+        msgBox.className = 'msg error';
+        msgBox.textContent = err.message;
+        msgBox.style.display = 'block';
+      });
   }
 
-  // ============================================================
-  // SHOW SUCCESS SCREEN
-  // ============================================================
-  function showSuccess(name, message) {
-    document.getElementById('formSection').style.display = 'none';
-    document.getElementById('modeBadge').style.display = 'none';
+  function showResult(data) {
+    document.getElementById('formView').style.display = 'none';
+    const resultView = document.getElementById('resultView');
+    resultView.classList.add('show');
+    resultView.classList.toggle('error', !data.success);
+
+    document.getElementById('resultIcon').innerHTML = data.success ? '&#10003;' : '&#10007;';
+    document.getElementById('resultName').textContent = data.name || (data.success ? '' : 'Not Found');
 
     const now = new Date();
-    const timeStr = now.toLocaleString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    document.getElementById('resultTimestamp').textContent = now.toLocaleString('en-GB', opts);
 
-    document.getElementById('successName').textContent = name || 'Student';
-    document.getElementById('successTime').textContent = timeStr;
-    document.getElementById('successTitle').textContent = mode === 'checkout' ? 'Checked Out Successfully' : 'Checked In Successfully';
-    document.getElementById('successMessage').textContent = message || (mode === 'checkout' ? 'Thank you. Your feedback has been recorded. See you next time!' : 'Your attendance has been recorded. Have a great session!');
-
-    document.getElementById('successSection').style.display = 'block';
+    document.getElementById('resultHeadline').textContent = data.success
+      ? (mode === 'checkin' ? 'Checked In Successfully' : 'Checked Out Successfully')
+      : 'Something Went Wrong';
+    document.getElementById('resultDetail').textContent = data.message;
   }
-
-  // Init
-  setupMode();
 </script>
-
 </body>
 </html>
