@@ -177,8 +177,8 @@
 
   <div class="content">
     <div class="toggle">
-      <button id="tabCheckin" class="active checkin" onclick="setMode('checkin')">CHECK-IN</button>
-      <button id="tabCheckout" class="checkout" onclick="setMode('checkout')">CHECK-OUT</button>
+      <button id="tabCheckin" class="active checkin" onclick="setMode('checkin')" type="button">CHECK-IN</button>
+      <button id="tabCheckout" class="checkout" onclick="setMode('checkout')" type="button">CHECK-OUT</button>
     </div>
 
     <div class="card">
@@ -191,20 +191,32 @@
           Current Time: <strong id="clock"></strong>
         </div>
 
-        <label for="mobile">Mobile Number</label>
-        <input type="text" id="mobile" placeholder="+2347045995935" oninput="onMobileChanged()">
+        <!--
+          This is a REAL form. For check-in we never call its native submit
+          (we read field values manually and fire a JSONP GET instead).
+          For check-out, we call form.submit() directly so the file input
+          travels as genuine multipart/form-data into the hidden iframe,
+          with zero copying/relocation of the file element itself.
+        -->
+        <form id="attendanceForm" target="hiddenUploadFrame" method="POST" enctype="multipart/form-data" onsubmit="return false;">
+          <input type="hidden" name="mode" id="formMode" value="checkin">
+          <input type="hidden" name="requestId" id="formRequestId" value="">
 
-        <div id="statusBanner" class="status-banner"></div>
+          <label for="mobile">Mobile Number</label>
+          <input type="text" id="mobile" name="mobile" placeholder="+2347045995935" oninput="onMobileChanged()">
 
-        <div id="checkoutFields" style="display:none;">
-          <label for="feedback">Feedback</label>
-          <textarea id="feedback" placeholder="How was today's session?"></textarea>
-          <label for="videoFile">Upload Photo / Video (optional)</label>
-          <input type="file" id="videoFile" accept="image/*,video/*">
-        </div>
+          <div id="statusBanner" class="status-banner"></div>
 
-        <button id="submitBtn" class="submit checkin" onclick="submitForm()" disabled>Enter mobile number</button>
-        <div id="msg" class="msg"></div>
+          <div id="checkoutFields" style="display:none;">
+            <label for="feedback">Feedback</label>
+            <textarea id="feedback" name="feedback" placeholder="How was today's session?"></textarea>
+            <label for="videoFile">Upload Photo / Video (optional)</label>
+            <input type="file" id="videoFile" name="videoFile" accept="image/*,video/*">
+          </div>
+
+          <button id="submitBtn" type="button" class="submit checkin" onclick="submitForm()" disabled>Enter mobile number</button>
+          <div id="msg" class="msg"></div>
+        </form>
       </div>
 
       <div id="resultView" class="result">
@@ -213,7 +225,7 @@
         <div class="timestamp" id="resultTimestamp"></div>
         <div class="headline" id="resultHeadline"></div>
         <div class="detail" id="resultDetail"></div>
-        <button class="again" onclick="resetView()">Done</button>
+        <button class="again" onclick="resetView()" type="button">Done</button>
       </div>
 
     </div>
@@ -225,15 +237,8 @@
     </div>
   </div>
 
-  <!-- Hidden form + iframe: real multipart file upload with zero CORS issues -->
+  <!-- Hidden iframe target: real form submissions here are not subject to CORS at all -->
   <iframe name="hiddenUploadFrame" style="display:none;"></iframe>
-  <form id="uploadForm" target="hiddenUploadFrame" method="POST" enctype="multipart/form-data" style="display:none;">
-    <input type="hidden" name="mode" value="checkout">
-    <input type="hidden" name="mobile" id="hiddenMobile">
-    <input type="hidden" name="feedback" id="hiddenFeedback">
-    <input type="hidden" name="requestId" id="hiddenRequestId">
-    <input type="file" name="videoFile" id="hiddenVideoFile" style="display:none;">
-  </form>
 
 <script>
   // ============================================================
@@ -244,6 +249,8 @@
   let mode = 'checkin';
   let statusDebounce = null;
   let lastStatus = null; // cached result of the most recent status check
+
+  document.getElementById('attendanceForm').action = APPS_SCRIPT_URL;
 
   const params = new URLSearchParams(window.location.search);
   if (params.get('mode') === 'checkout') mode = 'checkout';
@@ -258,6 +265,7 @@
 
   function setMode(newMode) {
     mode = newMode;
+    document.getElementById('formMode').value = mode;
     document.getElementById('tabCheckin').classList.toggle('active', mode === 'checkin');
     document.getElementById('tabCheckout').classList.toggle('active', mode === 'checkout');
 
@@ -331,12 +339,12 @@
     if (!mobile) {
       lastStatus = null;
       setBanner('', '');
-      setSubmitState(false, mode === 'checkin' ? 'Enter mobile number' : 'Enter mobile number');
+      setSubmitState(false, 'Enter mobile number');
       return;
     }
 
     setBanner('Checking your status...', 'checking');
-    setSubmitState(false, mode === 'checkin' ? 'Checking...' : 'Checking...');
+    setSubmitState(false, 'Checking...');
 
     statusDebounce = setTimeout(() => {
       const cb = 'cbstatus_' + Date.now();
@@ -397,8 +405,7 @@
     }
 
     // Final server-side-backed guard: never submit unless the last status
-    // check actually cleared this action. The button being enabled should
-    // already guarantee this, but we double check to be safe.
+    // check actually cleared this action.
     if (mode === 'checkin' && (!lastStatus || !lastStatus.success || lastStatus.state !== 'not_checked_in')) return;
     if (mode === 'checkout' && (!lastStatus || !lastStatus.success || lastStatus.state !== 'checked_in')) return;
 
@@ -416,42 +423,24 @@
           msgBox.style.display = 'block';
         });
     } else {
-      submitCheckoutWithUpload(mobile);
+      submitCheckoutWithUpload();
     }
   }
 
   // ------------------------------------------------------------
-  // Checkout goes through a hidden form + hidden iframe so the file
-  // (if any) uploads as real multipart/form-data with no CORS issues.
-  // We can't read the iframe's response, so we poll a small
-  // pollResult endpoint (JSONP) until the backend has finished.
+  // Checkout submits the REAL form (mobile, feedback, and the actual
+  // file input all live inside it already - nothing is copied or
+  // relocated). This travels as genuine multipart/form-data into the
+  // hidden iframe, so there's no CORS involved. We can't read the
+  // iframe's response, so we poll a small pollResult endpoint (JSONP)
+  // until the backend has finished processing.
   // ------------------------------------------------------------
-  function submitCheckoutWithUpload(mobile) {
-    const feedback = document.getElementById('feedback').value.trim();
+  function submitCheckoutWithUpload() {
     const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    document.getElementById('formRequestId').value = requestId;
+    document.getElementById('formMode').value = 'checkout';
 
-    document.getElementById('hiddenMobile').value = mobile;
-    document.getElementById('hiddenFeedback').value = feedback;
-    document.getElementById('hiddenRequestId').value = requestId;
-
-    const visibleFileInput = document.getElementById('videoFile');
-    const hiddenFileInput = document.getElementById('hiddenVideoFile');
-    const form = document.getElementById('uploadForm');
-    form.action = APPS_SCRIPT_URL;
-
-    // Copy the selected file into the permanent hidden file input instead of
-    // moving the visible input element itself. Relocating a live file input
-    // into another form right before submit() is unreliable on several mobile
-    // browsers - the browser can drop the file from the request if the node
-    // is moved again (even just after submit()) before it finishes packaging
-    // the upload. DataTransfer avoids touching the DOM tree at all.
-    const dt = new DataTransfer();
-    if (visibleFileInput.files && visibleFileInput.files.length > 0) {
-      dt.items.add(visibleFileInput.files[0]);
-    }
-    hiddenFileInput.files = dt.files;
-
-    form.submit();
+    document.getElementById('attendanceForm').submit();
 
     pollForResult(requestId, 0);
   }
