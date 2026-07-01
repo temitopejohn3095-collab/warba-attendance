@@ -232,6 +232,7 @@
     <input type="hidden" name="mobile" id="hiddenMobile">
     <input type="hidden" name="feedback" id="hiddenFeedback">
     <input type="hidden" name="requestId" id="hiddenRequestId">
+    <input type="file" name="videoFile" id="hiddenVideoFile" style="display:none;">
   </form>
 
 <script>
@@ -433,21 +434,24 @@
     document.getElementById('hiddenFeedback').value = feedback;
     document.getElementById('hiddenRequestId').value = requestId;
 
-    const fileInput = document.getElementById('videoFile');
+    const visibleFileInput = document.getElementById('videoFile');
+    const hiddenFileInput = document.getElementById('hiddenVideoFile');
     const form = document.getElementById('uploadForm');
     form.action = APPS_SCRIPT_URL;
 
-    // Move the real file input into the hidden form right before submitting
-    // (kept in the visible card the rest of the time for normal styling).
-    if (fileInput.files && fileInput.files.length > 0) {
-      fileInput.setAttribute('name', 'videoFile');
-      form.appendChild(fileInput);
+    // Copy the selected file into the permanent hidden file input instead of
+    // moving the visible input element itself. Relocating a live file input
+    // into another form right before submit() is unreliable on several mobile
+    // browsers - the browser can drop the file from the request if the node
+    // is moved again (even just after submit()) before it finishes packaging
+    // the upload. DataTransfer avoids touching the DOM tree at all.
+    const dt = new DataTransfer();
+    if (visibleFileInput.files && visibleFileInput.files.length > 0) {
+      dt.items.add(visibleFileInput.files[0]);
     }
+    hiddenFileInput.files = dt.files;
 
     form.submit();
-
-    // Put the file input back where the user can see it for next time.
-    document.getElementById('checkoutFields').appendChild(fileInput);
 
     pollForResult(requestId, 0);
   }
