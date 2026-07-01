@@ -1,613 +1,184 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Warba Attendance System</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  :root {
-    --warba-navy: #003366;
-    --warba-gold: #C8A84B;
-    --warba-light: #f5f7fa;
-    --warba-white: #ffffff;
-    --warba-gray: #6b7280;
-    --warba-border: #e5e7eb;
-    --checkin-green: #059669;
-    --checkout-orange: #d97706;
-    --error-red: #dc2626;
-    --success-green: #10b981;
-  }
-
-  body {
-    font-family: 'Inter', sans-serif;
-    background: var(--warba-light);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* HEADER */
-  .header {
-    background: var(--warba-navy);
-    padding: 20px 24px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-  }
-
-  .header-logo {
-    width: 48px;
-    height: 48px;
-    background: var(--warba-gold);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    color: var(--warba-navy);
-    font-size: 18px;
-    letter-spacing: -0.5px;
-    flex-shrink: 0;
-  }
-
-  .header-text h1 {
-    color: var(--warba-white);
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-  }
-
-  .header-text p {
-    color: var(--warba-gold);
-    font-size: 12px;
-    font-weight: 400;
-    margin-top: 2px;
-    letter-spacing: 0.5px;
-  }
-
-  /* MODE BADGE */
-  .mode-badge {
-    margin: 24px auto 0;
-    width: fit-content;
-    padding: 6px 18px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-
-  .mode-badge.checkin {
-    background: rgba(5, 150, 105, 0.12);
-    color: var(--checkin-green);
-    border: 1px solid rgba(5, 150, 105, 0.25);
-  }
-
-  .mode-badge.checkout {
-    background: rgba(217, 119, 6, 0.12);
-    color: var(--checkout-orange);
-    border: 1px solid rgba(217, 119, 6, 0.25);
-  }
-
-  /* MAIN CARD */
-  .container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 24px 16px 40px;
-    max-width: 480px;
-    width: 100%;
-    margin: 0 auto;
-  }
-
-  .card {
-    background: var(--warba-white);
-    border-radius: 16px;
-    padding: 32px 28px;
-    width: 100%;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
-    border: 1px solid var(--warba-border);
-    margin-top: 20px;
-  }
-
-  .card-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--warba-navy);
-    margin-bottom: 6px;
-  }
-
-  .card-subtitle {
-    font-size: 14px;
-    color: var(--warba-gray);
-    margin-bottom: 28px;
-    line-height: 1.5;
-  }
-
-  /* FORM */
-  .form-group {
-    margin-bottom: 20px;
-  }
-
-  label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--warba-navy);
-    margin-bottom: 8px;
-    letter-spacing: 0.3px;
-  }
-
-  input[type="tel"],
-  input[type="text"],
-  textarea {
-    width: 100%;
-    padding: 14px 16px;
-    border: 1.5px solid var(--warba-border);
-    border-radius: 10px;
-    font-size: 15px;
-    font-family: 'Inter', sans-serif;
-    color: #1f2937;
-    background: #fafafa;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    outline: none;
-  }
-
-  input[type="tel"]:focus,
-  input[type="text"]:focus,
-  textarea:focus {
-    border-color: var(--warba-navy);
-    box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.08);
-    background: var(--warba-white);
-  }
-
-  textarea {
-    resize: vertical;
-    min-height: 100px;
-  }
-
-  .file-upload-area {
-    border: 2px dashed var(--warba-border);
-    border-radius: 10px;
-    padding: 24px 16px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
-    background: #fafafa;
-  }
-
-  .file-upload-area:hover {
-    border-color: var(--warba-gold);
-    background: rgba(200, 168, 75, 0.04);
-  }
-
-  .file-upload-area input[type="file"] {
-    display: none;
-  }
-
-  .file-upload-icon {
-    font-size: 28px;
-    margin-bottom: 8px;
-  }
-
-  .file-upload-text {
-    font-size: 13px;
-    color: var(--warba-gray);
-  }
-
-  .file-upload-text span {
-    color: var(--warba-navy);
-    font-weight: 600;
-  }
-
-  .file-name {
-    margin-top: 8px;
-    font-size: 12px;
-    color: var(--checkin-green);
-    font-weight: 500;
-    display: none;
-  }
-
-  /* SUBMIT BUTTON */
-  .btn-submit {
-    width: 100%;
-    padding: 16px;
-    border: none;
-    border-radius: 10px;
-    font-size: 15px;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
-    letter-spacing: 0.3px;
-    margin-top: 8px;
-  }
-
-  .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
-  .btn-submit:active { transform: translateY(0); }
-  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
-
-  .btn-checkin {
-    background: var(--checkin-green);
-    color: white;
-  }
-
-  .btn-checkout {
-    background: var(--checkout-orange);
-    color: white;
-  }
-
-  /* ALERT MESSAGES */
-  .alert {
-    padding: 14px 16px;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 20px;
-    display: none;
-    line-height: 1.5;
-  }
-
-  .alert-error {
-    background: rgba(220, 38, 38, 0.08);
-    color: var(--error-red);
-    border: 1px solid rgba(220, 38, 38, 0.2);
-  }
-
-  .alert-success {
-    background: rgba(16, 185, 129, 0.08);
-    color: var(--success-green);
-    border: 1px solid rgba(16, 185, 129, 0.2);
-  }
-
-  /* SUCCESS SCREEN */
-  .success-screen {
-    text-align: center;
-    padding: 20px 0;
-    display: none;
-  }
-
-  .success-icon {
-    width: 72px;
-    height: 72px;
-    background: rgba(16, 185, 129, 0.1);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px;
-    font-size: 32px;
-  }
-
-  .success-screen h2 {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--warba-navy);
-    margin-bottom: 8px;
-  }
-
-  .success-screen p {
-    font-size: 14px;
-    color: var(--warba-gray);
-    line-height: 1.6;
-    margin-bottom: 24px;
-  }
-
-  .success-name {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--checkin-green);
-    margin-bottom: 4px;
-  }
-
-  .success-time {
-    font-size: 13px;
-    color: var(--warba-gray);
-    margin-bottom: 20px;
-  }
-
-  /* LOADING SPINNER */
-  .spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    display: inline-block;
-    margin-right: 8px;
-    vertical-align: middle;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* DIVIDER */
-  .divider {
-    height: 1px;
-    background: var(--warba-border);
-    margin: 24px 0;
-  }
-
-  /* FOOTER */
-  .footer {
-    text-align: center;
-    padding: 20px 16px;
-    font-size: 11px;
-    color: #9ca3af;
-    line-height: 1.8;
-  }
-
-  .footer a {
-    color: var(--warba-navy);
-    text-decoration: none;
-    font-weight: 500;
-  }
-
-  .footer .developer {
-    color: var(--warba-gold);
-    font-weight: 600;
-    font-size: 11px;
-  }
-
-  /* TIME DISPLAY */
-  .time-display {
-    background: var(--warba-light);
-    border: 1px solid var(--warba-border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 13px;
-    color: var(--warba-gray);
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .time-display .time-value {
-    font-weight: 600;
-    color: var(--warba-navy);
-    font-size: 15px;
-  }
-
-  @media (max-width: 400px) {
-    .card { padding: 24px 20px; }
-    .card-title { font-size: 20px; }
-  }
-</style>
-</head>
-<body>
-
-<!-- HEADER -->
-<div class="header">
-  <div class="header-logo">W</div>
-  <div class="header-text">
-    <h1>Warba Insurance & Reinsurance</h1>
-    <p>ATTENDANCE MANAGEMENT SYSTEM</p>
-  </div>
-</div>
-
-<!-- MAIN CONTENT -->
-<div class="container">
-
-  <div id="modeBadge" class="mode-badge checkin">Check-In</div>
-
-  <div class="card">
-
-    <!-- ALERT MESSAGES -->
-    <div id="alertError" class="alert alert-error"></div>
-    <div id="alertSuccess" class="alert alert-success"></div>
-
-    <!-- FORM SECTION -->
-    <div id="formSection">
-      <div id="cardTitle" class="card-title">Student Check-In</div>
-      <div id="cardSubtitle" class="card-subtitle">Enter your registered mobile number to record your attendance.</div>
-
-      <!-- LIVE TIME -->
-      <div class="time-display">
-        <span>Current Time:</span>
-        <span id="liveTime" class="time-value"></span>
-      </div>
-
-      <form id="attendanceForm">
-
-        <!-- MOBILE NUMBER -->
-        <div class="form-group">
-          <label for="mobileNumber">Mobile Number</label>
-          <input type="tel" id="mobileNumber" placeholder="e.g. +96550000000" required autocomplete="tel">
-        </div>
-
-        <!-- FEEDBACK (checkout only) -->
-        <div id="feedbackGroup" class="form-group" style="display:none;">
-          <div class="divider"></div>
-          <label for="feedbackText">Session Feedback</label>
-          <textarea id="feedbackText" placeholder="Share your thoughts about today's session..."></textarea>
-        </div>
-
-        <!-- VIDEO UPLOAD (checkout only) -->
-        <div id="videoGroup" class="form-group" style="display:none;">
-          <label>Training Video (Optional)</label>
-          <div class="file-upload-area" onclick="document.getElementById('videoFile').click()">
-            <input type="file" id="videoFile" accept="video/*" onchange="handleFileSelect(this)">
-            <div class="file-upload-icon">🎥</div>
-            <div class="file-upload-text">Tap to upload your training video<br><span>MP4, MOV, AVI supported</span></div>
-            <div id="fileName" class="file-name"></div>
-          </div>
-        </div>
-
-        <button type="submit" id="submitBtn" class="btn-submit btn-checkin">Check In</button>
-
-      </form>
-    </div>
-
-    <!-- SUCCESS SECTION -->
-    <div id="successSection" class="success-screen">
-      <div class="success-icon">✓</div>
-      <div id="successName" class="success-name"></div>
-      <div id="successTime" class="success-time"></div>
-      <h2 id="successTitle">Checked In Successfully</h2>
-      <p id="successMessage">Your attendance has been recorded. Have a great session!</p>
-    </div>
-
-  </div>
-</div>
-
-<!-- FOOTER -->
-<div class="footer">
-  <a href="https://www.warba.insure" target="_blank">warba.insure</a><br>
-  Warba Insurance and Reinsurance Company — Kuwait<br>
-  <span class="developer">Developed by: Syed Usama Najeeb — Digital Transformation Specialist</span>
-</div>
-
-<script>
-  // ============================================================
-  // CONFIGURATION — Replace with your deployed Apps Script URL
-  // ============================================================
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxshDSLbejW_D2WDvp_eoFzrSyaPM0jHzXfHPReMlc3Idq-iZe5jBLNEuJSFLi_SlPY3w/exec';
-
-  // ============================================================
-  // DETECT MODE FROM URL PARAMETER
-  // ============================================================
-  const urlParams = new URLSearchParams(window.location.search);
-  const mode = urlParams.get('mode') || 'checkin'; // 'checkin' or 'checkout'
-
-  // ============================================================
-  // SETUP UI BASED ON MODE
-  // ============================================================
-  function setupMode() {
-    const badge = document.getElementById('modeBadge');
-    const title = document.getElementById('cardTitle');
-    const subtitle = document.getElementById('cardSubtitle');
-    const btn = document.getElementById('submitBtn');
-    const feedbackGroup = document.getElementById('feedbackGroup');
-    const videoGroup = document.getElementById('videoGroup');
-
-    if (mode === 'checkout') {
-      badge.textContent = 'Check-Out';
-      badge.className = 'mode-badge checkout';
-      title.textContent = 'Student Check-Out';
-      subtitle.textContent = 'Enter your mobile number, leave your feedback, and upload any training videos.';
-      btn.textContent = 'Check Out';
-      btn.className = 'btn-submit btn-checkout';
-      feedbackGroup.style.display = 'block';
-      videoGroup.style.display = 'block';
-    }
-  }
-
-  // ============================================================
-  // LIVE CLOCK
-  // ============================================================
-  function updateClock() {
-    const now = new Date();
-    const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-    document.getElementById('liveTime').textContent = now.toLocaleString('en-GB', options);
-  }
-  updateClock();
-  setInterval(updateClock, 1000);
-
-  // ============================================================
-  // FILE SELECT HANDLER
-  // ============================================================
-  function handleFileSelect(input) {
-    const fileNameEl = document.getElementById('fileName');
-    if (input.files && input.files[0]) {
-      fileNameEl.textContent = '✓ ' + input.files[0].name;
-      fileNameEl.style.display = 'block';
-    }
-  }
-
-  // ============================================================
-  // FORM SUBMISSION
-  // ============================================================
-  document.getElementById('attendanceForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-
-    const btn = document.getElementById('submitBtn');
-    const mobile = document.getElementById('mobileNumber').value.trim();
-    const feedback = document.getElementById('feedbackText').value.trim();
-    const errorEl = document.getElementById('alertError');
-    const successEl = document.getElementById('alertSuccess');
-
-    // Clear previous alerts
-    errorEl.style.display = 'none';
-    successEl.style.display = 'none';
-
-    if (!mobile) {
-      showError('Please enter your mobile number.');
-      return;
+// ============================================================
+// WARBA INSURANCE - ATTENDANCE SYSTEM
+// Google Apps Script Backend
+// Developed by: Syed Usama Najeeb — Digital Transformation Specialist
+// ============================================================
+
+const SPREADSHEET_ID = '1vJ4q4hwAJRnUDp5aDb2yH0DQlqvWZEKAjzeNVCFdkKk';
+const STUDENTS_SHEET = 'Students';
+const ATTENDANCE_SHEET = 'Attendance';
+const FEEDBACK_SHEET = 'Feedback';
+
+// ============================================================
+// HANDLE POST REQUEST
+// ============================================================
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const mode = data.mode;
+    const mobile = data.mobile.trim();
+    const feedback = data.feedback || '';
+    const timestamp = new Date();
+
+    const student = findStudent(mobile);
+
+    if (!student) {
+      return respond(false, null, 'Mobile number not found. Please check your number or contact your administrator.');
     }
 
-    // Loading state
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>' + (mode === 'checkout' ? 'Processing...' : 'Checking in...');
+    if (mode === 'checkin') {
+      return handleCheckIn(student, mobile, timestamp);
+    } else if (mode === 'checkout') {
+      return handleCheckOut(student, mobile, feedback, timestamp);
+    } else {
+      return respond(false, null, 'Invalid mode.');
+    }
 
-    try {
-      const payload = {
-        mode: mode,
-        mobile: mobile,
-        feedback: feedback,
-        timestamp: new Date().toISOString()
+  } catch (err) {
+    return respond(false, null, 'An error occurred: ' + err.message);
+  }
+}
+
+// ============================================================
+// HANDLE GET REQUEST — required for CORS preflight
+// ============================================================
+function doGet(e) {
+  const mode = e.parameter.mode || '';
+  const mobile = e.parameter.mobile || '';
+  const feedback = e.parameter.feedback || '';
+  const timestamp = new Date();
+
+  if (!mobile || !mode) {
+    return respond(false, null, 'Missing parameters.');
+  }
+
+  const student = findStudent(mobile);
+  if (!student) {
+    return respond(false, null, 'Mobile number not found. Please check your number or contact your administrator.');
+  }
+
+  if (mode === 'checkin') {
+    return handleCheckIn(student, mobile, timestamp);
+  } else if (mode === 'checkout') {
+    return handleCheckOut(student, mobile, feedback, timestamp);
+  }
+
+  return respond(false, null, 'Invalid mode.');
+}
+
+// ============================================================
+// FIND STUDENT BY MOBILE NUMBER
+// ============================================================
+function findStudent(mobile) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(STUDENTS_SHEET);
+  const data = sheet.getDataRange().getValues();
+
+  const cleanMobile = mobile.replace(/[\s\-\(\)]/g, '');
+
+  for (let i = 1; i < data.length; i++) {
+    const storedMobile = String(data[i][1]).replace(/[\s\-\(\)]/g, '');
+    if (storedMobile === cleanMobile) {
+      return {
+        name: data[i][0],
+        mobile: data[i][1],
+        email: data[i][2] || '',
+        batch: data[i][3] || '',
+        row: i + 1
       };
-
-      const response = await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        showSuccess(result.name, result.message);
-      } else {
-        showError(result.message || 'Something went wrong. Please try again.');
-        btn.disabled = false;
-        btn.innerHTML = mode === 'checkout' ? 'Check Out' : 'Check In';
-      }
-
-    } catch (err) {
-      showError('Unable to connect. Please check your internet and try again.');
-      btn.disabled = false;
-      btn.innerHTML = mode === 'checkout' ? 'Check Out' : 'Check In';
     }
-  });
+  }
+  return null;
+}
 
-  // ============================================================
-  // SHOW ERROR
-  // ============================================================
-  function showError(msg) {
-    const el = document.getElementById('alertError');
-    el.textContent = msg;
-    el.style.display = 'block';
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+// ============================================================
+// HANDLE CHECK-IN
+// ============================================================
+function handleCheckIn(student, mobile, timestamp) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(ATTENDANCE_SHEET);
+
+  const today = Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    const rowDate = data[i][3] ? String(data[i][3]) : '';
+    const rowMobile = String(data[i][2]).replace(/[\s\-\(\)]/g, '');
+    const cleanMobile = mobile.replace(/[\s\-\(\)]/g, '');
+
+    if (rowDate === today && rowMobile === cleanMobile && data[i][4]) {
+      return respond(true, student.name, 'You have already checked in today at ' + String(data[i][4]) + '. See you later!');
+    }
   }
 
-  // ============================================================
-  // SHOW SUCCESS SCREEN
-  // ============================================================
-  function showSuccess(name, message) {
-    document.getElementById('formSection').style.display = 'none';
-    document.getElementById('modeBadge').style.display = 'none';
+  const lastRow = Math.max(sheet.getLastRow(), 1);
+  const dateStr = Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const timeStr = Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'HH:mm:ss');
 
-    const now = new Date();
-    const timeStr = now.toLocaleString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  sheet.appendRow([lastRow, student.name, student.mobile, dateStr, timeStr, 'Checked In', '']);
 
-    document.getElementById('successName').textContent = name || 'Student';
-    document.getElementById('successTime').textContent = timeStr;
-    document.getElementById('successTitle').textContent = mode === 'checkout' ? 'Checked Out Successfully' : 'Checked In Successfully';
-    document.getElementById('successMessage').textContent = message || (mode === 'checkout' ? 'Thank you. Your feedback has been recorded. See you next time!' : 'Your attendance has been recorded. Have a great session!');
-
-    document.getElementById('successSection').style.display = 'block';
+  if (sheet.getRange(1, 1).getValue() === '') {
+    sheet.getRange(1, 1).setValue('Record ID');
+    sheet.getRange(1, 2).setValue('Student Name');
+    sheet.getRange(1, 3).setValue('Mobile Number');
+    sheet.getRange(1, 4).setValue('Check-in Date');
+    sheet.getRange(1, 5).setValue('Check-in Time');
+    sheet.getRange(1, 6).setValue('Status');
+    sheet.getRange(1, 7).setValue('Check-out Time');
   }
 
-  // Init
-  setupMode();
-</script>
+  return respond(true, student.name, 'Welcome, ' + student.name + '! Your check-in has been recorded at ' + timeStr + '.');
+}
 
-</body>
-</html>
+// ============================================================
+// HANDLE CHECK-OUT
+// ============================================================
+function handleCheckOut(student, mobile, feedback, timestamp) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const attendanceSheet = ss.getSheetByName(ATTENDANCE_SHEET);
+  const feedbackSheet = ss.getSheetByName(FEEDBACK_SHEET);
+
+  const today = Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const data = attendanceSheet.getDataRange().getValues();
+  const timeStr = Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'HH:mm:ss');
+  const dateStr = Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+
+  let checkInRowIndex = -1;
+
+  for (let i = 1; i < data.length; i++) {
+    const rowDate = String(data[i][3]);
+    const rowMobile = String(data[i][2]).replace(/[\s\-\(\)]/g, '');
+    const cleanMobile = mobile.replace(/[\s\-\(\)]/g, '');
+
+    if (rowDate === today && rowMobile === cleanMobile) {
+      checkInRowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (checkInRowIndex > -1) {
+    attendanceSheet.getRange(checkInRowIndex, 6).setValue('Checked Out');
+    attendanceSheet.getRange(checkInRowIndex, 7).setValue(timeStr);
+  }
+
+  if (feedback) {
+    const feedbackLastRow = Math.max(feedbackSheet.getLastRow(), 1);
+    feedbackSheet.appendRow([feedbackLastRow, student.name, student.mobile, dateStr, feedback, '', timeStr]);
+  }
+
+  const message = checkInRowIndex > -1
+    ? 'Goodbye, ' + student.name + '! Your check-out has been recorded at ' + timeStr + '. Thank you for today!'
+    : 'Goodbye, ' + student.name + '! Your checkout has been saved.';
+
+  return respond(true, student.name, message);
+}
+
+// ============================================================
+// RESPONSE HELPER
+// ============================================================
+function respond(success, name, message) {
+  const output = { success: success, name: name, message: message };
+  return ContentService
+    .createTextOutput(JSON.stringify(output))
+    .setMimeType(ContentService.MimeType.JSON);
+}
