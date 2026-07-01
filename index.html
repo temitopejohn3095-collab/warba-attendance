@@ -314,31 +314,104 @@
     });
   }
 
-  function fileToBase64(file) {
+  // Uploads a file by POSTing a real <form enctype="multipart/form-data">
+  // into a hidden <iframe>. Real form submissions are NOT subject to CORS
+  // (only reading the response would be, and we don't need to - we poll
+  // for the result separately via JSONP, which also isn't subject to CORS).
+  function submitCheckoutWithFile(mobile, feedback) {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = () => reject(new Error('Could not read the selected file.'));
-      reader.readAsDataURL(file);
-    });
-  }
+      const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2);
 
-  // POST with text/plain content-type keeps this a "simple request" so the
-  // browser skips the CORS preflight (which Apps Script can't answer).
-  function postToScript(payload) {
-    const callbackName = 'cb_' + Date.now();
-    const url = APPS_SCRIPT_URL + '?callback=' + callbackName;
-    return fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    })
-    .then((res) => res.text())
-    .then((text) => {
-      // response body is "callbackName({...json...})" - strip the wrapper
-      const match = text.match(/^[^(]+\((.*)\)\s*;?\s*$/s);
-      const jsonStr = match ? match[1] : text;
-      return JSON.parse(jsonStr);
+      const originalInput = document.getElementById('videoFile');
+      const originalParent = originalInput.parentNode;
+      const originalNextSibling = originalInput.nextSibling;
+
+      const iframeName = 'upload_target_' + requestId;
+      const iframe = document.createElement('iframe');
+      iframe.name = iframeName;
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = APPS_SCRIPT_URL;
+      form.target = iframeName;
+      form.enctype = 'multipart/form-data';
+      form.style.display = 'none';
+
+      const addField = (name, value) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+      };
+      addField('mode', 'checkout');
+      addField('mobile', mobile);
+      addField('feedback', feedback);
+      addField('requestId', requestId);
+
+      // Move the actual file input (with its chosen file already attached)
+      // into this form so the browser uploads the real file content.
+      originalInput.name = 'file';
+      form.appendChild(originalInput);
+      document.body.appendChild(form);
+
+      let settled = false;
+
+      const restore = () => {
+        originalInput.name = '';
+        if (originalNextSibling) {
+          originalParent.insertBefore(originalInput, originalNextSibling);
+        } else {
+          originalParent.appendChild(originalInput);
+        }
+      };
+
+      const cleanup = () => {
+        restore();
+        setTimeout(() => { form.remove(); iframe.remove(); }, 500);
+      };
+
+      let attempts = 0;
+      const maxAttempts = 40; // ~60s total, generous for slow mobile uploads
+
+      const poll = () => {
+        if (settled) return;
+        attempts++;
+        const cbName = 'poll_' + Date.now() + '_' + attempts;
+        const url = APPS_SCRIPT_URL + '?mode=pollResult&requestId=' + encodeURIComponent(requestId);
+        jsonp(url, cbName)
+          .then((data) => {
+            if (settled) return;
+            if (data && data.pending) {
+              if (attempts >= maxAttempts) {
+                settled = true;
+                cleanup();
+                reject(new Error('Upload is taking longer than expected. Please check your connection and try again.'));
+              } else {
+                setTimeout(poll, 1500);
+              }
+            } else {
+              settled = true;
+              cleanup();
+              resolve(data);
+            }
+          })
+          .catch((err) => {
+            if (settled) return;
+            if (attempts >= maxAttempts) {
+              settled = true;
+              cleanup();
+              reject(err);
+            } else {
+              setTimeout(poll, 1500);
+            }
+          });
+      };
+
+      form.submit();
+      setTimeout(poll, 1200); // give the upload a brief head start
     });
   }
 
@@ -362,16 +435,8 @@
 
       if (mode === 'checkout' && selectedFile) {
         btn.textContent = 'Uploading...';
-        const base64 = await fileToBase64(selectedFile);
         const feedback = document.getElementById('feedback').value.trim();
-        data = await postToScript({
-          mode: 'checkout',
-          mobile: mobile,
-          feedback: feedback,
-          fileName: selectedFile.name,
-          mimeType: selectedFile.type,
-          fileData: base64
-        });
+        data = await submitCheckoutWithFile(mobile, feedback);
       } else {
         btn.textContent = 'Please wait...';
         let url = APPS_SCRIPT_URL + '?mode=' + mode + '&mobile=' + encodeURIComponent(mobile);
