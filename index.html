@@ -201,6 +201,9 @@
         <form id="attendanceForm" target="hiddenUploadFrame" method="POST" enctype="multipart/form-data" onsubmit="return false;">
           <input type="hidden" name="mode" id="formMode" value="checkin">
           <input type="hidden" name="requestId" id="formRequestId" value="">
+          <input type="hidden" name="fileData" id="formFileData" value="">
+          <input type="hidden" name="fileName" id="formFileName" value="">
+          <input type="hidden" name="fileType" id="formFileType" value="">
 
           <label for="mobile">Mobile Number</label>
           <input type="text" id="mobile" name="mobile" placeholder="+2347045995935" oninput="onMobileChanged()">
@@ -210,8 +213,8 @@
           <div id="checkoutFields" style="display:none;">
             <label for="feedback">Feedback</label>
             <textarea id="feedback" name="feedback" placeholder="How was today's session?"></textarea>
-            <label for="videoFile">Upload Photo / Video (optional)</label>
-            <input type="file" id="videoFile" name="videoFile" accept="image/*,video/*">
+            <label for="videoFile">Upload Photo / Video (optional, max 15MB)</label>
+            <input type="file" id="videoFile" accept="image/*,video/*">
           </div>
 
           <button id="submitBtn" type="button" class="submit checkin" onclick="submitForm()" disabled>Enter mobile number</button>
@@ -291,6 +294,9 @@
     document.getElementById('mobile').value = '';
     if (document.getElementById('feedback')) document.getElementById('feedback').value = '';
     if (document.getElementById('videoFile')) document.getElementById('videoFile').value = '';
+    document.getElementById('formFileData').value = '';
+    document.getElementById('formFileName').value = '';
+    document.getElementById('formFileType').value = '';
     lastStatus = null;
     setBanner('', '');
     setSubmitState(false, 'Enter mobile number');
@@ -428,21 +434,57 @@
   }
 
   // ------------------------------------------------------------
-  // Checkout submits the REAL form (mobile, feedback, and the actual
-  // file input all live inside it already - nothing is copied or
-  // relocated). This travels as genuine multipart/form-data into the
-  // hidden iframe, so there's no CORS involved. We can't read the
-  // iframe's response, so we poll a small pollResult endpoint (JSONP)
-  // until the backend has finished processing.
+  // Checkout: the file (if any) is read client-side and converted to
+  // base64, then placed into a plain hidden TEXT field before the form
+  // submits. Native multipart file-blob fields proved unreliable on the
+  // Apps Script side, but plain text fields have worked in every test,
+  // so the file rides along as one of those instead.
   // ------------------------------------------------------------
   function submitCheckoutWithUpload() {
     const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2);
     document.getElementById('formRequestId').value = requestId;
     document.getElementById('formMode').value = 'checkout';
 
-    document.getElementById('attendanceForm').submit();
+    const fileInput = document.getElementById('videoFile');
+    const file = (fileInput.files && fileInput.files.length > 0) ? fileInput.files[0] : null;
 
-    pollForResult(requestId, 0);
+    if (!file) {
+      document.getElementById('formFileData').value = '';
+      document.getElementById('formFileName').value = '';
+      document.getElementById('formFileType').value = '';
+      document.getElementById('attendanceForm').submit();
+      pollForResult(requestId, 0);
+      return;
+    }
+
+    const maxBytes = 15 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setSubmitState(true, 'Check Out');
+      const msgBox = document.getElementById('msg');
+      msgBox.className = 'msg error';
+      msgBox.textContent = 'That file is too large (max 15MB). Please choose a smaller photo or video.';
+      msgBox.style.display = 'block';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function () {
+      const dataUrl = reader.result; // "data:image/png;base64,AAAA..."
+      const base64 = dataUrl.split(',')[1] || '';
+      document.getElementById('formFileData').value = base64;
+      document.getElementById('formFileName').value = file.name;
+      document.getElementById('formFileType').value = file.type || 'application/octet-stream';
+      document.getElementById('attendanceForm').submit();
+      pollForResult(requestId, 0);
+    };
+    reader.onerror = function () {
+      setSubmitState(true, 'Check Out');
+      const msgBox = document.getElementById('msg');
+      msgBox.className = 'msg error';
+      msgBox.textContent = 'Could not read the selected file. Please try again.';
+      msgBox.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
   }
 
   function pollForResult(requestId, attempt) {
