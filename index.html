@@ -214,7 +214,8 @@
             <label for="feedback">Feedback</label>
             <textarea id="feedback" name="feedback" placeholder="How was today's session?"></textarea>
             <label for="videoFile">Upload Photo / Video (optional, max 15MB)</label>
-            <input type="file" id="videoFile" accept="image/*,video/*">
+            <input type="file" id="videoFile" accept="image/*,video/*" onchange="onFileChosen(this)">
+            <div id="fileChosenLabel" style="display:none; margin-top:8px; font-size:13px; color:#15803d; font-weight:600;"></div>
           </div>
 
           <button id="submitBtn" type="button" class="submit checkin" onclick="submitForm()" disabled>Enter mobile number</button>
@@ -294,12 +295,26 @@
     document.getElementById('mobile').value = '';
     if (document.getElementById('feedback')) document.getElementById('feedback').value = '';
     if (document.getElementById('videoFile')) document.getElementById('videoFile').value = '';
+    if (document.getElementById('fileChosenLabel')) { document.getElementById('fileChosenLabel').style.display = 'none'; document.getElementById('fileChosenLabel').textContent = ''; }
     document.getElementById('formFileData').value = '';
     document.getElementById('formFileName').value = '';
     document.getElementById('formFileType').value = '';
     lastStatus = null;
     setBanner('', '');
     setSubmitState(false, 'Enter mobile number');
+  }
+
+  function onFileChosen(input) {
+    const label = document.getElementById('fileChosenLabel');
+    if (input.files && input.files.length > 0) {
+      const f = input.files[0];
+      const sizeMB = (f.size / (1024 * 1024)).toFixed(2);
+      label.textContent = '✓ Selected: ' + f.name + ' (' + sizeMB + ' MB)';
+      label.style.display = 'block';
+    } else {
+      label.style.display = 'none';
+      label.textContent = '';
+    }
   }
 
   function setBanner(text, kind) {
