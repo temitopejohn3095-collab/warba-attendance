@@ -202,20 +202,17 @@
         <form id="attendanceForm" target="hiddenUploadFrame" method="POST" enctype="multipart/form-data" onsubmit="return false;">
           <input type="hidden" name="mode" id="formMode" value="checkin">
           <input type="hidden" name="requestId" id="formRequestId" value="">
-          <input type="hidden" name="fileData" id="formFileData" value="">
-          <input type="hidden" name="fileName" id="formFileName" value="">
-          <input type="hidden" name="fileType" id="formFileType" value="">
 
           <label for="mobile">Mobile Number</label>
-          <input type="text" id="mobile" name="mobile" placeholder="+2347045995935" oninput="onMobileChanged()">
+          <input type="text" id="mobile" name="mobile" placeholder="+965XXXXXXXX" oninput="onMobileChanged()">
 
           <div id="statusBanner" class="status-banner"></div>
 
           <div id="checkoutFields" style="display:none;">
             <label for="feedback">Feedback</label>
             <textarea id="feedback" name="feedback" placeholder="How was today's session?"></textarea>
-            <label for="videoFile">Upload Photo / Video (optional, max 15MB)</label>
-            <input type="file" id="videoFile" accept="image/*,video/*" onchange="onFileChosen(this)">
+            <label for="videoFile">Upload Photos / Videos (optional, up to 45MB total)</label>
+            <input type="file" id="videoFile" accept="image/*,video/*" multiple onchange="onFileChosen(this)">
             <div id="fileChosenLabel" style="display:none; margin-top:8px; font-size:13px; color:#15803d; font-weight:600;"></div>
           </div>
 
@@ -297,25 +294,32 @@
     if (document.getElementById('feedback')) document.getElementById('feedback').value = '';
     if (document.getElementById('videoFile')) document.getElementById('videoFile').value = '';
     if (document.getElementById('fileChosenLabel')) { document.getElementById('fileChosenLabel').style.display = 'none'; document.getElementById('fileChosenLabel').textContent = ''; }
-    document.getElementById('formFileData').value = '';
-    document.getElementById('formFileName').value = '';
-    document.getElementById('formFileType').value = '';
+    clearDynamicFileFields();
     lastStatus = null;
     setBanner('', '');
     setSubmitState(false, 'Enter mobile number');
   }
 
+  const MAX_TOTAL_UPLOAD_BYTES = 45 * 1024 * 1024; // 45MB - must match Code.gs
+
   function onFileChosen(input) {
     const label = document.getElementById('fileChosenLabel');
-    if (input.files && input.files.length > 0) {
-      const f = input.files[0];
-      const sizeMB = (f.size / (1024 * 1024)).toFixed(2);
-      label.textContent = '✓ Selected: ' + f.name + ' (' + sizeMB + ' MB)';
-      label.style.display = 'block';
-    } else {
+    const files = input.files ? Array.from(input.files) : [];
+    if (files.length === 0) {
       label.style.display = 'none';
       label.textContent = '';
+      return;
     }
+    const totalBytes = files.reduce((sum, f) => sum + f.size, 0);
+    const totalMB = (totalBytes / (1024 * 1024)).toFixed(2);
+    if (totalBytes > MAX_TOTAL_UPLOAD_BYTES) {
+      label.style.color = '#b91c1c';
+      label.textContent = '✗ ' + files.length + ' file(s), ' + totalMB + ' MB total — exceeds the 45MB limit. Please select fewer/smaller files.';
+    } else {
+      label.style.color = '#15803d';
+      label.textContent = '✓ Selected: ' + files.length + ' file(s), ' + totalMB + ' MB total';
+    }
+    label.style.display = 'block';
   }
 
   function setBanner(text, kind) {
@@ -388,29 +392,30 @@
       return;
     }
 
-    const state = data.state;
+    // Server-side time window / holiday gate takes priority over anything else.
+    if (data.windowBlocked) {
+      setBanner(data.windowMessage, 'blocked');
+      setSubmitState(false, 'Not Available Now');
+      return;
+    }
+
+    const state = data.state; // 'checked_in' (has an open check-in) or 'not_checked_in'
 
     if (mode === 'checkin') {
-      if (state === 'not_checked_in') {
+      if (state === 'checked_in') {
+        setBanner('You are already checked in. Please check out before checking in again.', 'blocked');
+        setSubmitState(false, 'Already Checked In');
+      } else {
         setBanner('', '');
         setSubmitState(true, 'Check In');
-      } else if (state === 'checked_in') {
-        setBanner('You are already checked in today at ' + data.checkInTime + '. Please check out when done.', 'blocked');
-        setSubmitState(false, 'Already Checked In');
-      } else if (state === 'completed') {
-        setBanner('You already completed check-in and check-out for today.', 'blocked');
-        setSubmitState(false, 'Day Completed');
       }
     } else {
       if (state === 'not_checked_in') {
         setBanner('You need to check in first before you can check out.', 'blocked');
         setSubmitState(false, 'Check In Required');
-      } else if (state === 'checked_in') {
-        setBanner('Checked in at ' + data.checkInTime + '. You can check out below.', 'ok');
+      } else {
+        setBanner('You are checked in. You can check out below.', 'ok');
         setSubmitState(true, 'Check Out');
-      } else if (state === 'completed') {
-        setBanner('You already checked out today at ' + data.checkOutTime + '.', 'blocked');
-        setSubmitState(false, 'Already Checked Out');
       }
     }
   }
@@ -450,57 +455,83 @@
   }
 
   // ------------------------------------------------------------
-  // Checkout: the file (if any) is read client-side and converted to
-  // base64, then placed into a plain hidden TEXT field before the form
-  // submits. Native multipart file-blob fields proved unreliable on the
-  // Apps Script side, but plain text fields have worked in every test,
-  // so the file rides along as one of those instead.
+  // Checkout: each selected file is read client-side and converted to
+  // base64, then placed into indexed hidden TEXT fields (fileData0,
+  // fileData1, ...) before the form submits. Apps Script reads these
+  // by index on the backend. Native multipart file-blob fields proved
+  // unreliable, but plain text fields work reliably, hence this approach.
   // ------------------------------------------------------------
-  function submitCheckoutWithUpload() {
+  function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1] || '');
+      reader.onerror = () => reject(new Error('Could not read "' + file.name + '". Please try again.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function clearDynamicFileFields() {
+    document.querySelectorAll('.dynamic-file-field').forEach(el => el.remove());
+  }
+
+  async function submitCheckoutWithUpload() {
     const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2);
     document.getElementById('formRequestId').value = requestId;
     document.getElementById('formMode').value = 'checkout';
+    clearDynamicFileFields();
 
     const fileInput = document.getElementById('videoFile');
-    const file = (fileInput.files && fileInput.files.length > 0) ? fileInput.files[0] : null;
+    const files = fileInput.files ? Array.from(fileInput.files) : [];
+    const msgBox = document.getElementById('msg');
 
-    if (!file) {
-      document.getElementById('formFileData').value = '';
-      document.getElementById('formFileName').value = '';
-      document.getElementById('formFileType').value = '';
+    if (files.length === 0) {
       document.getElementById('attendanceForm').submit();
       pollForResult(requestId, 0);
       return;
     }
 
-    const maxBytes = 15 * 1024 * 1024;
-    if (file.size > maxBytes) {
+    if (files.length > 10) {
       setSubmitState(true, 'Check Out');
-      const msgBox = document.getElementById('msg');
       msgBox.className = 'msg error';
-      msgBox.textContent = 'That file is too large (max 15MB). Please choose a smaller photo or video.';
+      msgBox.textContent = 'Please select at most 10 files.';
       msgBox.style.display = 'block';
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = function () {
-      const dataUrl = reader.result; // "data:image/png;base64,AAAA..."
-      const base64 = dataUrl.split(',')[1] || '';
-      document.getElementById('formFileData').value = base64;
-      document.getElementById('formFileName').value = file.name;
-      document.getElementById('formFileType').value = file.type || 'application/octet-stream';
-      document.getElementById('attendanceForm').submit();
-      pollForResult(requestId, 0);
-    };
-    reader.onerror = function () {
+    const totalBytes = files.reduce((sum, f) => sum + f.size, 0);
+    if (totalBytes > MAX_TOTAL_UPLOAD_BYTES) {
       setSubmitState(true, 'Check Out');
-      const msgBox = document.getElementById('msg');
       msgBox.className = 'msg error';
-      msgBox.textContent = 'Could not read the selected file. Please try again.';
+      msgBox.textContent = 'Combined file size is too large (max 45MB total). Please choose fewer or smaller files.';
       msgBox.style.display = 'block';
-    };
-    reader.readAsDataURL(file);
+      return;
+    }
+
+    try {
+      const form = document.getElementById('attendanceForm');
+      for (let i = 0; i < files.length; i++) {
+        const base64 = await readFileAsBase64(files[i]);
+        [
+          ['fileData' + i, base64],
+          ['fileName' + i, files[i].name],
+          ['fileType' + i, files[i].type || 'application/octet-stream']
+        ].forEach(([name, value]) => {
+          const field = document.createElement('input');
+          field.type = 'hidden';
+          field.name = name;
+          field.className = 'dynamic-file-field';
+          field.value = value;
+          form.appendChild(field);
+        });
+      }
+      form.submit();
+      pollForResult(requestId, 0);
+    } catch (err) {
+      setSubmitState(true, 'Check Out');
+      msgBox.className = 'msg error';
+      msgBox.textContent = err.message;
+      msgBox.style.display = 'block';
+    }
   }
 
   function pollForResult(requestId, attempt) {
