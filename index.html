@@ -211,7 +211,7 @@
           <div id="checkoutFields" style="display:none;">
             <label for="feedback">Feedback</label>
             <textarea id="feedback" name="feedback" placeholder="How was today's session?"></textarea>
-            <label for="videoFile">Upload Photos / Videos (optional, up to 45MB total)</label>
+            <label for="videoFile">Upload Photos / Videos (optional, up to 25MB total)</label>
             <input type="file" id="videoFile" accept="image/*,video/*" multiple onchange="onFileChosen(this)">
             <div id="fileChosenLabel" style="display:none; margin-top:8px; font-size:13px; color:#15803d; font-weight:600;"></div>
           </div>
@@ -300,7 +300,7 @@
     setSubmitState(false, 'Enter mobile number');
   }
 
-  const MAX_TOTAL_UPLOAD_BYTES = 45 * 1024 * 1024; // 45MB - must match Code.gs
+  const MAX_TOTAL_UPLOAD_BYTES = 25 * 1024 * 1024; // 25MB raw - must match Code.gs exactly
 
   function onFileChosen(input) {
     const label = document.getElementById('fileChosenLabel');
@@ -314,7 +314,7 @@
     const totalMB = (totalBytes / (1024 * 1024)).toFixed(2);
     if (totalBytes > MAX_TOTAL_UPLOAD_BYTES) {
       label.style.color = '#b91c1c';
-      label.textContent = '✗ ' + files.length + ' file(s), ' + totalMB + ' MB total — exceeds the 45MB limit. Please select fewer/smaller files.';
+      label.textContent = '✗ ' + files.length + ' file(s), ' + totalMB + ' MB total — exceeds the 25MB limit. Please select fewer/smaller files.';
     } else {
       label.style.color = '#15803d';
       label.textContent = '✓ Selected: ' + files.length + ' file(s), ' + totalMB + ' MB total';
@@ -502,7 +502,7 @@
     if (totalBytes > MAX_TOTAL_UPLOAD_BYTES) {
       setSubmitState(true, 'Check Out');
       msgBox.className = 'msg error';
-      msgBox.textContent = 'Combined file size is too large (max 45MB total). Please choose fewer or smaller files.';
+      msgBox.textContent = 'Combined file size is too large (max 25MB total). Please choose fewer or smaller files.';
       msgBox.style.display = 'block';
       return;
     }
